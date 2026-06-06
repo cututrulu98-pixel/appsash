@@ -25,7 +25,6 @@ def load_data(file):
     df.columns = df.columns.str.strip()
     return df
 
-
 file = st.file_uploader("📁 Sube tu dataset Spotify CSV", type=["csv"])
 
 if not file:
@@ -96,11 +95,10 @@ metric = st.sidebar.selectbox(
 st.subheader(f"🏆 Top 10 por {metric}")
 
 top = df.sort_values(metric, ascending=False).head(10)
-
 st.dataframe(top)
 
 # =========================
-# TABS
+# TAB DESIGN
 # =========================
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "📈 General",
@@ -112,41 +110,69 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
 ])
 
 # =========================
-# TAB 1 - GENERAL
+# TAB 1 - GENERAL (MEJORADO)
 # =========================
 with tab1:
     if "popularity" in df.columns:
-        fig = px.histogram(df, x="popularity", template="plotly_dark")
+        fig = px.histogram(
+            df,
+            x="popularity",
+            nbins=40,
+            opacity=0.85,
+            color_discrete_sequence=["#636EFA"]
+        )
+        fig.update_layout(bargap=0.05)
         st.plotly_chart(fig, use_container_width=True)
 
     if "year" in df.columns:
-        fig = px.histogram(df, x="year", template="plotly_dark")
+        fig = px.histogram(
+            df,
+            x="year",
+            nbins=30,
+            opacity=0.85,
+            color_discrete_sequence=["#00CC96"]
+        )
         st.plotly_chart(fig, use_container_width=True)
 
 # =========================
-# TAB 2 - AUDIO FEATURES
+# TAB 2 - AUDIO FEATURES (COLORES DIFERENTES)
 # =========================
 with tab2:
     audio_cols = ["danceability", "energy", "tempo", "loudness"]
-    colors = px.colors.qualitative.Set2
 
-    for col in audio_cols:
+    palette = ["#EF553B", "#00CC96", "#636EFA", "#AB63FA"]
+
+    for i, col in enumerate(audio_cols):
         if col in df.columns:
-            fig = px.histogram(df, x=col, template="plotly_dark")
+            fig = px.histogram(
+                df,
+                x=col,
+                opacity=0.75,
+                color_discrete_sequence=[palette[i % len(palette)]],
+            )
+            fig.update_traces(marker_line_width=1, marker_line_color="black")
             st.plotly_chart(fig, use_container_width=True)
 
 # =========================
-# TAB 3 - ARTISTS
+# TAB 3 - ARTISTS (MEJOR BAR)
 # =========================
 with tab3:
     if "artist_name" in df.columns and "stream_count" in df.columns:
         top_artists = df.groupby("artist_name")["stream_count"].sum().nlargest(10).reset_index()
 
-        fig = px.bar(top_artists, x="artist_name", y="stream_count", template="plotly_dark")
+        fig = px.bar(
+            top_artists,
+            x="artist_name",
+            y="stream_count",
+            color="stream_count",
+            color_continuous_scale="Turbo"
+        )
+
+        fig.update_traces(marker_line_width=1, marker_line_color="black")
         st.plotly_chart(fig, use_container_width=True)
 
 # =========================
-# TAB 4 - COUNTRIES
+# TAB 4 - COUNTRIES (MEJOR MAPA)
 # =========================
 with tab4:
     if "country" in df.columns and "stream_count" in df.columns:
@@ -157,47 +183,53 @@ with tab4:
             locations="country",
             locationmode="country names",
             color="stream_count",
-            color_continuous_scale="Viridis"
+            color_continuous_scale="Plasma"
         )
+
+        fig.update_layout(margin=dict(l=0, r=0, t=0, b=0))
         st.plotly_chart(fig, use_container_width=True)
 
 # =========================
-# TAB 5 - AI INSIGHTS
+# TAB 5 - AI INSIGHTS (LINEA PRO)
 # =========================
 with tab5:
     st.subheader("🧠 Insights automáticos")
 
     if "popularity" in df.columns and "artist_name" in df.columns:
         best_artist = df.groupby("artist_name")["popularity"].mean().idxmax()
-        st.success(f"🔥 Top artista por popularidad: {best_artist}")
+        st.success(f"🔥 Top artista: {best_artist}")
 
     if "year" in df.columns and "popularity" in df.columns:
         trend = df.groupby("year")["popularity"].mean().reset_index()
 
-        fig = px.line(trend, x="year", y="popularity", markers=True)
+        fig = px.line(
+            trend,
+            x="year",
+            y="popularity",
+            markers=True
+        )
+
+        fig.update_traces(line=dict(width=3, color="#00CC96"))
+        fig.update_layout(
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)"
+        )
+
         st.plotly_chart(fig, use_container_width=True)
 
-    # Correlation
     if len(numeric_cols) > 1:
         corr = df[numeric_cols].corr()
-        fig = px.imshow(corr, text_auto=True, template="plotly_dark")
+
+        fig = px.imshow(
+            corr,
+            text_auto=True,
+            color_continuous_scale="RdBu_r"
+        )
+
         st.plotly_chart(fig, use_container_width=True)
 
-    # Recomendador
-    st.subheader("🎧 Recomendador tipo Spotify")
-
-    if "danceability" in df.columns and "energy" in df.columns:
-
-        d = st.slider("Danceability", 0.0, 1.0, 0.5)
-        e = st.slider("Energy", 0.0, 1.0, 0.5)
-
-        rec = df.copy()
-        rec["score"] = abs(rec["danceability"] - d) + abs(rec["energy"] - e)
-
-        st.dataframe(rec.sort_values("score").head(10))
-
 # =========================
-# TAB 6 - MACHINE LEARNING
+# TAB 6 - ML
 # =========================
 with tab6:
     st.subheader("🤖 ML Models")
@@ -206,7 +238,6 @@ with tab6:
     def train_models(df):
         results = {}
 
-        # REGRESSION
         if "popularity" in df.columns:
             X = df[numeric_cols].drop(columns=["popularity"], errors="ignore").fillna(0)
             y = df["popularity"]
@@ -226,7 +257,6 @@ with tab6:
                 "features": X.columns
             }
 
-        # CLASSIFICATION
         if "explicit" in df.columns:
             X = df[numeric_cols].fillna(0)
             y = df["explicit"].astype(int)
@@ -249,25 +279,30 @@ with tab6:
     res = train_models(df)
 
     if "reg" in res:
-        st.write("📈 Regression Metrics")
-        st.json(res["reg"])
+        st.write("📈 Feature Importance")
 
         fi = pd.DataFrame({
             "feature": res["reg"]["features"],
             "importance": res["reg"]["model"].feature_importances_
         }).sort_values("importance", ascending=False)
 
-        fig = px.bar(fi, x="feature", y="importance", template="plotly_dark")
+        fig = px.bar(
+            fi,
+            x="feature",
+            y="importance",
+            color="importance",
+            color_continuous_scale="Viridis"
+        )
+
         st.plotly_chart(fig)
 
     if "clf" in res:
-        st.write("🚨 Classification Accuracy")
         st.metric("Accuracy", round(res["clf"]["accuracy"], 3))
 
 # =========================
-# CLUSTERING (BONUS PRO)
+# CLUSTERING
 # =========================
-st.subheader("🎯 Clustering de canciones")
+st.subheader("🎯 Clustering")
 
 if "danceability" in df.columns and "energy" in df.columns:
     Xc = df[["danceability", "energy"]].fillna(0)
@@ -278,10 +313,16 @@ if "danceability" in df.columns and "energy" in df.columns:
     kmeans = KMeans(n_clusters=4, random_state=42)
     df["cluster"] = kmeans.fit_predict(Xc_scaled)
 
-    fig = px.scatter(df, x="danceability", y="energy", color="cluster", template="plotly_dark")
+    fig = px.scatter(
+        df,
+        x="danceability",
+        y="energy",
+        color="cluster",
+        opacity=0.7
+    )
+
+    fig.update_traces(marker_line_width=1, marker_line_color="black")
+
     st.plotly_chart(fig, use_container_width=True)
 
-# =========================
-# FINAL MESSAGE
-# =========================
-st.success("🚀 Dashboard listo — versión MEGA PRO activada")
+st.success("Dashboard Spotify PRO 🚀")
