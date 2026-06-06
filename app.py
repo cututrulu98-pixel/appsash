@@ -5,14 +5,17 @@ import numpy as np
 
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, accuracy_score, classification_report
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, accuracy_score
 
 # =========================
 # CONFIG
 # =========================
-st.set_page_config(page_title="Spotify Dashboard Pro", layout="wide")
+st.set_page_config(
+    page_title="🎵 Spotify Dashboard Pro",
+    layout="wide"
+)
 
-st.title("🎵 Spotify Dashboard + Machine Learning")
+st.title("🎵 Spotify Dashboard Pro + ML")
 
 # =========================
 # LOAD DATA
@@ -23,40 +26,36 @@ def load_data(file):
     df.columns = df.columns.str.strip()
     return df
 
-
 file = st.file_uploader("📁 Sube tu CSV de Spotify", type=["csv"])
 
 if file:
     df = load_data(file)
+
+    # LIMPIEZA BÁSICA
+    df = df.fillna(0)
 
     # =========================
     # SIDEBAR FILTERS
     # =========================
     st.sidebar.header("🎛️ Filtros")
 
-    if "artist_name" in df.columns:
-        artist = st.sidebar.multiselect("Artista", df["artist_name"].dropna().unique())
-    else:
-        artist = []
+    def safe_multiselect(label, column):
+        if column in df.columns:
+            return st.sidebar.multiselect(label, df[column].unique())
+        return []
 
-    if "genre" in df.columns:
-        genre = st.sidebar.multiselect("Género", df["genre"].dropna().unique())
-    else:
-        genre = []
-
-    if "country" in df.columns:
-        country = st.sidebar.multiselect("País", df["country"].dropna().unique())
-    else:
-        country = []
+    artist = safe_multiselect("🎤 Artista", "artist_name")
+    genre = safe_multiselect("🎧 Género", "genre")
+    country = safe_multiselect("🌍 País", "country")
 
     if "release_date" in df.columns:
         df["release_date"] = pd.to_datetime(df["release_date"], errors="coerce")
         df["year"] = df["release_date"].dt.year
-        year = st.sidebar.multiselect("Año", sorted(df["year"].dropna().unique()))
+        year = st.sidebar.multiselect("📅 Año", sorted(df["year"].dropna().unique()))
     else:
         year = []
 
-    # APPLY FILTERS
+    # FILTERS
     if artist:
         df = df[df["artist_name"].isin(artist)]
     if genre:
@@ -69,7 +68,7 @@ if file:
     # =========================
     # KPIs
     # =========================
-    st.subheader("📊 KPIs Generales")
+    st.subheader("📊 KPIs")
 
     c1, c2, c3, c4 = st.columns(4)
 
@@ -82,7 +81,7 @@ if file:
     # TABS
     # =========================
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-        "📈 General",
+        "📈 Popularidad",
         "🎧 Audio",
         "👨‍🎤 Artistas",
         "🌍 Países",
@@ -91,68 +90,89 @@ if file:
     ])
 
     # =========================
-    # TAB 1
+    # TAB 1 - POPULARIDAD MEJORADA
     # =========================
     with tab1:
-        st.subheader("📊 Popularidad")
+        st.subheader("📈 Distribución de Popularidad")
 
-        if "popularity" in df:
+        if "popularity" in df.columns:
+
             fig = px.histogram(
                 df,
                 x="popularity",
-                color_discrete_sequence=["#00D4FF"]
+                nbins=30,
+                color_discrete_sequence=["#00D4FF"],
+                template="plotly_dark"
             )
-            st.plotly_chart(fig, use_container_width=True)
-            st.caption("📌 Distribución de la popularidad de las canciones.")
 
-        if "year" in df:
-            fig = px.histogram(
-                df,
-                x="year",
-                color_discrete_sequence=["#FF4B4B"]
+            fig.update_layout(
+                bargap=0.1,
+                title="Distribución de Popularidad",
+                xaxis_title="Popularidad",
+                yaxis_title="Cantidad de canciones"
             )
+
             st.plotly_chart(fig, use_container_width=True)
-            st.caption("📌 Canciones publicadas por año.")
 
     # =========================
-    # TAB 2 AUDIO
+    # TAB 2 AUDIO (MEJORADO)
     # =========================
     with tab2:
-        audio_cols = ["danceability", "energy", "tempo", "loudness"]
+        st.subheader("🎧 Audio Features")
 
+        audio_cols = ["danceability", "energy", "tempo", "loudness"]
         colors = ["#00D4FF", "#FF4B4B", "#00CC96", "#AB63FA"]
 
         for i, col in enumerate(audio_cols):
             if col in df.columns:
+
                 fig = px.histogram(
                     df,
                     x=col,
-                    color_discrete_sequence=[colors[i % len(colors)]]
+                    nbins=30,
+                    color_discrete_sequence=[colors[i]],
+                    template="plotly_dark"
                 )
+
+                fig.update_layout(
+                    title=f"Distribución de {col}",
+                    xaxis_title=col,
+                    yaxis_title="Frecuencia",
+                    bargap=0.1
+                )
+
                 st.plotly_chart(fig, use_container_width=True)
-                st.caption(f"📌 Distribución de {col} en las canciones.")
 
     # =========================
     # TAB 3 ARTISTS
     # =========================
     with tab3:
-        if "artist_name" in df and "stream_count" in df:
+        st.subheader("👨‍🎤 Top Artistas")
+
+        if "artist_name" in df.columns and "stream_count" in df.columns:
+
             top = df.groupby("artist_name")["stream_count"].sum().nlargest(10).reset_index()
 
             fig = px.bar(
                 top,
-                x="artist_name",
-                y="stream_count",
-                color_discrete_sequence=["#00CC96"]
+                x="stream_count",
+                y="artist_name",
+                orientation="h",
+                color="stream_count",
+                color_continuous_scale="Blues",
+                template="plotly_dark"
             )
+
             st.plotly_chart(fig, use_container_width=True)
-            st.caption("📌 Top 10 artistas con más streams.")
 
     # =========================
     # TAB 4 COUNTRIES
     # =========================
     with tab4:
-        if "country" in df and "stream_count" in df:
+        st.subheader("🌍 Streams por País")
+
+        if "country" in df.columns and "stream_count" in df.columns:
+
             topc = df.groupby("country")["stream_count"].sum().reset_index()
 
             fig = px.choropleth(
@@ -160,89 +180,64 @@ if file:
                 locations="country",
                 locationmode="country names",
                 color="stream_count",
-                color_continuous_scale="Viridis"
+                color_continuous_scale="Viridis",
+                template="plotly_dark"
             )
+
             st.plotly_chart(fig, use_container_width=True)
-            st.caption("📌 Streams por país a nivel mundial.")
 
     # =========================
-    # TAB 5 CORRELATION
+    # TAB 5 CORRELATION (MEJORADO)
     # =========================
     with tab5:
+        st.subheader("📊 Correlación")
+
         numeric = df.select_dtypes(include=np.number)
 
         if len(numeric.columns) > 1:
-            corr = numeric.corr()
 
-            fig = px.imshow(corr, text_auto=True, color_continuous_scale="RdBu")
-            st.plotly_chart(fig, use_container_width=True)
-            st.caption("📌 Correlación entre variables numéricas.")
-
-        if "danceability" in df and "popularity" in df:
-            fig = px.scatter(
-                df,
-                x="danceability",
-                y="popularity",
-                color_discrete_sequence=["#00D4FF"]
+            fig = px.imshow(
+                numeric.corr(),
+                text_auto=True,
+                color_continuous_scale="RdBu",
+                template="plotly_dark"
             )
+
             st.plotly_chart(fig, use_container_width=True)
-            st.caption("📌 Relación entre danceability y popularidad.")
 
     # =========================
-    # TAB 6 ML
+    # TAB 6 ML (MEJORADO)
     # =========================
     with tab6:
         st.subheader("🤖 Machine Learning")
 
-        @st.cache_resource
-        def train(df):
-            results = {}
+        if st.button("🚀 Entrenar modelo"):
 
-            # REGRESION
             if "popularity" in df.columns:
-                X = df.select_dtypes(include=np.number).drop(columns=["popularity"], errors="ignore").fillna(0)
+
+                X = df.select_dtypes(include=np.number).drop(columns=["popularity"], errors="ignore")
                 y = df["popularity"]
 
-                X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+                X = X.fillna(0)
 
-                model = RandomForestRegressor(n_estimators=100)
-                model.fit(X_train, y_train)
+                if len(X.columns) > 0:
 
-                pred = model.predict(X_test)
+                    X_train, X_test, y_train, y_test = train_test_split(
+                        X, y, test_size=0.2, random_state=42
+                    )
 
-                results["reg"] = {
-                    "MAE": mean_absolute_error(y_test, pred),
-                    "RMSE": np.sqrt(mean_squared_error(y_test, pred)),
-                    "R2": r2_score(y_test, pred)
-                }
+                    model = RandomForestRegressor(n_estimators=100)
+                    model.fit(X_train, y_train)
 
-            # CLASSIFICATION
-            if "explicit" in df.columns:
-                X = df.select_dtypes(include=np.number).fillna(0)
-                y = df["explicit"].astype(int)
+                    pred = model.predict(X_test)
 
-                X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-                model = RandomForestClassifier(n_estimators=100)
-                model.fit(X_train, y_train)
-
-                pred = model.predict(X_test)
-
-                results["clf"] = {
-                    "accuracy": accuracy_score(y_test, pred)
-                }
-
-            return results
-
-        res = train(df)
-
-        if "reg" in res:
-            st.write("📈 Predicción Popularidad")
-            st.json(res["reg"])
-
-        if "clf" in res:
-            st.write("🚨 Clasificación Explicit")
-            st.write("Accuracy:", res["clf"]["accuracy"])
+                    st.write("📊 Resultados:")
+                    st.json({
+                        "MAE": mean_absolute_error(y_test, pred),
+                        "RMSE": np.sqrt(mean_squared_error(y_test, pred)),
+                        "R2": r2_score(y_test, pred)
+                    })
 
 else:
     st.info("📂 Sube tu dataset para comenzar")
+    
