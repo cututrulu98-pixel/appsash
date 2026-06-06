@@ -105,7 +105,7 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "Audio",
     "Artistas",
     "Paises",
-    "Analisis IA",
+    "Correlacion y clustering",
     "Machine Learning"
 ])
 
@@ -193,7 +193,7 @@ with tab4:
 # TAB 5 - AI INSIGHTS (LINEA PRO)
 # =========================
 with tab5:
-    st.subheader("Prespectivas automáticos")
+    st.subheader("Prespectivas automáticas")
 
     if "popularity" in df.columns and "artist_name" in df.columns:
         best_artist = df.groupby("artist_name")["popularity"].mean().idxmax()
