@@ -12,9 +12,9 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, a
 # =========================
 # CONFIG
 # =========================
-st.set_page_config(page_title="Spotify Mega Pro Dashboard", layout="wide")
+st.set_page_config(page_title="Spotify Dashboard", layout="wide")
 
-st.title("🎵 Spotify MEGA PRO Dashboard + AI")
+st.title("Spotify Dashboard")
 
 # =========================
 # LOAD DATA
@@ -25,10 +25,10 @@ def load_data(file):
     df.columns = df.columns.str.strip()
     return df
 
-file = st.file_uploader("📁 Sube tu dataset Spotify CSV", type=["csv"])
+file = st.file_uploader("Sube tu dataset Spotify CSV", type=["csv"])
 
 if not file:
-    st.info("📂 Sube un archivo CSV para comenzar")
+    st.info("Sube un archivo CSV para comenzar")
     st.stop()
 
 df = load_data(file)
@@ -45,7 +45,7 @@ numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
 # =========================
 # SIDEBAR FILTERS
 # =========================
-st.sidebar.header("🎛️ Filtros")
+st.sidebar.header("Filtros")
 
 def safe_multiselect(col):
     if col in df.columns:
@@ -73,26 +73,26 @@ if year:
 # =========================
 # KPIs
 # =========================
-st.subheader("📊 KPIs")
+st.subheader("KPIs")
 
 c1, c2, c3, c4 = st.columns(4)
 
-c1.metric("🎵 Songs", len(df))
-c2.metric("👨‍🎤 Artists", df["artist_name"].nunique() if "artist_name" in df else 0)
-c3.metric("🌍 Countries", df["country"].nunique() if "country" in df else 0)
-c4.metric("🔥 Avg Popularity", round(df["popularity"].mean(), 2) if "popularity" in df else 0)
+c1.metric("Canciones", len(df))
+c2.metric("Artistas", df["artist_name"].nunique() if "artist_name" in df else 0)
+c3.metric("Paises", df["country"].nunique() if "country" in df else 0)
+c4.metric("Popularidad Promedio", round(df["popularity"].mean(), 2) if "popularity" in df else 0)
 
 # =========================
 # RANKING
 # =========================
-st.sidebar.header("📊 Ranking")
+st.sidebar.header("Ranking")
 
 metric = st.sidebar.selectbox(
     "Ordenar por",
     [col for col in ["popularity", "stream_count", "danceability", "energy"] if col in df.columns]
 )
 
-st.subheader(f"🏆 Top 10 por {metric}")
+st.subheader(f"Top 10 por {metric}")
 
 top = df.sort_values(metric, ascending=False).head(10)
 st.dataframe(top)
@@ -101,12 +101,12 @@ st.dataframe(top)
 # TAB DESIGN
 # =========================
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-    "📈 General",
-    "🎧 Audio",
-    "👨‍🎤 Artists",
-    "🌍 Countries",
-    "📊 AI Insights",
-    "🤖 Machine Learning"
+    "General",
+    "Audio",
+    "Artistas",
+    "Paises",
+    "Analisis IA",
+    "Machine Learning"
 ])
 
 # =========================
@@ -193,11 +193,11 @@ with tab4:
 # TAB 5 - AI INSIGHTS (LINEA PRO)
 # =========================
 with tab5:
-    st.subheader("🧠 Insights automáticos")
+    st.subheader("Prespectivas automáticos")
 
     if "popularity" in df.columns and "artist_name" in df.columns:
         best_artist = df.groupby("artist_name")["popularity"].mean().idxmax()
-        st.success(f"🔥 Top artista: {best_artist}")
+        st.success(f"Top artistas: {best_artist}")
 
     if "year" in df.columns and "popularity" in df.columns:
         trend = df.groupby("year")["popularity"].mean().reset_index()
@@ -232,7 +232,7 @@ with tab5:
 # TAB 6 - ML
 # =========================
 with tab6:
-    st.subheader("🤖 ML Models")
+    st.subheader("ML Modelos")
 
     @st.cache_resource
     def train_models(df):
@@ -279,7 +279,7 @@ with tab6:
     res = train_models(df)
 
     if "reg" in res:
-        st.write("📈 Feature Importance")
+        st.write("Feature Importance")
 
         fi = pd.DataFrame({
             "feature": res["reg"]["features"],
@@ -302,7 +302,7 @@ with tab6:
 # =========================
 # CLUSTERING
 # =========================
-st.subheader("🎯 Clustering")
+st.subheader("Clustering")
 
 if "danceability" in df.columns and "energy" in df.columns:
     Xc = df[["danceability", "energy"]].fillna(0)
@@ -325,4 +325,4 @@ if "danceability" in df.columns and "energy" in df.columns:
 
     st.plotly_chart(fig, use_container_width=True)
 
-st.success("Dashboard Spotify PRO 🚀")
+st.success("Dashboard Spotify")
